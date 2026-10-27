@@ -121,7 +121,8 @@ const startServer = async () => {
   }
 };
 
-// Start automatically if executed directly
-if (process.env.NODE_ENV !== 'test') {
+// Start automatically if executed directly (and not in Vercel serverless environment)
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   startServer();
 }
+

@@ -414,7 +414,11 @@ export const cancelBooking = async (req: AuthRequest, res: Response): Promise<vo
     const refundAmount = Math.round((booking.baseAmount * refundPercentage) / 100);
 
     // Initiate refund via Payment Service
-    let refundResult = { refundId: 'simulated_refund', status: 'completed' as const, amount: refundAmount };
+    let refundResult: { refundId: string; status: 'completed' | 'processing' | 'failed'; amount: number } = {
+      refundId: 'simulated_refund',
+      status: 'completed',
+      amount: refundAmount,
+    };
     if (booking.paymentId) {
       refundResult = await processRefund({
         paymentId: booking.paymentId,
