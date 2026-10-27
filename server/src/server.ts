@@ -53,8 +53,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Apply rate limiter to general API
 app.use('/api', apiLimiter);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Health check endpoints (root and /api)
+const healthHandler = (req: express.Request, res: express.Response) => {
   res.json({
     status: 'healthy',
     platform: 'CineNova API',
@@ -62,10 +62,12 @@ app.get('/api/health', (req, res) => {
     environment: config.env,
     timestamp: new Date().toISOString(),
   });
-});
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // API Documentation / Route Directory Endpoint
-app.get('/api/docs', (req, res) => {
+const docsHandler = (req: express.Request, res: express.Response) => {
   res.json({
     platform: 'CineNova Movie Ticket Booking Platform API',
     endpoints: {
@@ -83,21 +85,28 @@ app.get('/api/docs', (req, res) => {
       theatreOwner: ['GET /api/theatre-owner/theatres', 'POST /api/theatre-owner/theatres', 'POST /api/theatre-owner/screens', 'POST /api/theatre-owner/shows', 'GET /api/theatre-owner/bookings'],
     },
   });
-});
+};
+app.get('/docs', docsHandler);
+app.get('/api/docs', docsHandler);
 
-// Mount Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/cities', cityRoutes);
-app.use('/api/movies', movieRoutes);
-app.use('/api/theatres', theatreRoutes);
-app.use('/api/shows', showRoutes);
-app.use('/api/bookings', bookingRoutes);
-app.use('/api/coupons', couponRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/support', supportRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/theatre-owner', theatreOwnerRoutes);
+// Create modular API Router
+const apiRouter = express.Router();
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/cities', cityRoutes);
+apiRouter.use('/movies', movieRoutes);
+apiRouter.use('/theatres', theatreRoutes);
+apiRouter.use('/shows', showRoutes);
+apiRouter.use('/bookings', bookingRoutes);
+apiRouter.use('/coupons', couponRoutes);
+apiRouter.use('/subscriptions', subscriptionRoutes);
+apiRouter.use('/reviews', reviewRoutes);
+apiRouter.use('/support', supportRoutes);
+apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/theatre-owner', theatreOwnerRoutes);
+
+// Mount API Router under both '/api' and '/' so routing works with or without path stripping
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
 // Global Error Handler
 app.use(errorHandler);
@@ -121,8 +130,11 @@ const startServer = async () => {
   }
 };
 
-// Start automatically if executed directly (and not in Vercel serverless environment)
-if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+// Export default app for Vercel Express service and serverless compatibility
+export default app;
+
+// Start automatically when running as a standalone server or Vercel service
+if (process.env.NODE_ENV !== 'test') {
   startServer();
 }
 
